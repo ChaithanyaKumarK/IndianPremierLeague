@@ -1,22 +1,25 @@
-const CSVtoJSON = require("csvtojson");
-const fs = require("fs");
+import path from 'path'
+import { fileURLToPath } from 'url'
+import fs from 'fs'
+import CSVtoJSON from 'csvtojson'
 
 
 
-const inputDeliveries = "./src/data/deliveries.csv";
-const outputDeliveries = "./src/data/deliveries.json";
-const inputMatches = "./src/data/matches.csv";
-const outputMatches = "./src/data/matches.json";
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const inputDeliveries = "./data/deliveries.csv";
+const inputMatches = "./data/matches.csv";
+const modifyOutputFilePath = (path) => path.replace('.csv', '.json');
 
-function csvToJsonWriter(inputCsvPath, outputJsonPath) {
+function csvToJsonWriter(inputCsvPath) {
     CSVtoJSON()
-        .fromFile(inputCsvPath)
+        .fromFile(path.resolve(__dirname, inputCsvPath))
         .then((json) => {
-            fs.writeFileSync(outputJsonPath, JSON.stringify(json), "utf-8", (err) => {
+            fs.writeFileSync(path.resolve(__dirname, modifyOutputFilePath(inputCsvPath)), JSON.stringify(json), "utf-8", (err) => {
                 if (err) { console.log(err); }
             })
         })
 }
 
-csvToJsonWriter(inputDeliveries, outputDeliveries);
-csvToJsonWriter(inputMatches, outputMatches);
+
+csvToJsonWriter(inputDeliveries);
+csvToJsonWriter(inputMatches);

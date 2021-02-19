@@ -1,26 +1,27 @@
-const fs = require("fs");
-const iplFunctions = require("./iplfunc")
+import path from 'path'
+import { fileURLToPath } from 'url'
+import fs from 'fs'
+import ipl from './iplfunc.js'
 
-const deliveriesJson = require("../data/deliveries.json");
-const matchesJson = require("../data/matches.json");
-const { log } = require("console");
+const deliveriesJsonPath = "../data/deliveries.json";
+const matchesJsonPath = "../data/matches.json";
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const deliveriesJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, deliveriesJsonPath)));
+const matchesJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, matchesJsonPath)));
 
-
-let matchesPerYear = iplFunctions.noOfMatchesPerYear(matchesJson);
-let matchesWonPerTeam = iplFunctions.teamWinsPerYear(matchesJson);
-let extraRunPerTeam2016 = iplFunctions.extraRunPerTeam2016(matchesJson, deliveriesJson);
-let economicalBowlers2015=iplFunctions.economicalBowlers2015(matchesJson, deliveriesJson);
-
+let matchesPerYear = ipl.noOfMatchesPerYear(matchesJson);
+let matchesWonPerTeam = ipl.teamWinsPerYear(matchesJson);
+let extraRunPerTeam2016 = ipl.extraRunPerTeam2016(matchesJson, deliveriesJson);
+let economicalBowlers2015 = ipl.economicalBowlers2015(matchesJson, deliveriesJson);
 
 function writeToFile(outputFilePath, outputJson) {
-    fs.writeFileSync(outputFilePath, JSON.stringify(outputJson), "utf-8", (err) => {
+    const outputPath = "../public/output";
+    fs.writeFileSync(path.resolve(__dirname, outputPath, `${outputFilePath}.json`), JSON.stringify(outputJson), "utf-8", (err) => {
         if (err) { console.log(err); }
     });
 }
 
-
-
-writeToFile("./src/public/output/matchesPerYear.json", matchesPerYear);
-writeToFile("./src/public/output/matchesWonPerTeam.json", matchesWonPerTeam);
-writeToFile("./src/public/output/extraRunPerTeam2016.json", extraRunPerTeam2016);
-writeToFile("./src/public/output/economicalBowlers2015.json", economicalBowlers2015);
+writeToFile("matchesPerYear", matchesPerYear);
+writeToFile("matchesWonPerTeam", matchesWonPerTeam);
+writeToFile("extraRunPerTeam2016", extraRunPerTeam2016);
+writeToFile("economicalBowlers2015", economicalBowlers2015);
