@@ -1,61 +1,27 @@
 document.addEventListener('DOMContentLoaded', function () {
-    fetch('/matchesPerYear.json').then(res => res.json()).then(data => {
-        const chart = Highcharts.chart('container', {
-            chart: {
-                type: 'column'
-            },
-            title: {
-                text: 'matchesPerYear'
-            },
-            xAxis: {
-                categories: Object.keys(data)
-            },
-            yAxis: {
-                title: {
-                    text: 'matches played'
-                }
-            },
-            series: [{
-                name: 'Year',
-                data: Object.values(data)
-            }]
-        });
-    });
+
+    createChartMatchesPerYear('container1');
+    
+    createChartExtraRunPerTeam2016('container2');
+
+    createChartEconomicalBowlers2015('container3');
+    
+    createChartMatchesWonPerTeam('container4');
+});
 
 
-    fetch('/extraRunPerTeam2016.json').then(res => res.json()).then(data => {
-        const chart = Highcharts.chart('container1', {
-            chart: {
-                type: 'bar'
-            },
-            title: {
-                text: 'Extra runs in 2016'
-            },
-            xAxis: {
-                categories: Object.keys(data)
-            },
-            yAxis: {
-                title: {
-                    text: 'Extra runs'
-                }
-            },
-            series: [{
-                name: 'Team',
-                data: Object.values(data)
-            }]
-        });
-    });
 
-
+function createChartEconomicalBowlers2015(HTML_id){
 
     fetch('/economicalBowlers2015.json').then(res => res.json()).then(data => {
-        const chart = Highcharts.chart('container2', {
+        const chart = Highcharts.chart(HTML_id, {
             chart: {
                 type: 'bar'
             },
             title: {
                 text: 'top 10 economic bowlers'
             },
+            colors:['#d2601a'],
             xAxis: {
                 categories: Object.keys(data)
             },
@@ -73,6 +39,63 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
+}
+function createChartExtraRunPerTeam2016(HTML_id){
+    fetch('/extraRunPerTeam2016.json').then(res => res.json()).then(data => {
+        const chart = Highcharts.chart(HTML_id, {
+            chart: {
+                type: 'bar'
+            },
+            title: {
+                text: 'Extra runs in 2016'
+            },
+            
+            colors:[ '#1868ae'],
+            
+            xAxis: {
+                
+                categories: Object.keys(data)
+            },
+            yAxis: {
+                title: {
+                    text: 'Extra runs'
+                }
+            },
+            series: [{
+                name: 'Team',
+                data: Object.values(data)
+            }]
+        });
+    });
+}
+function createChartMatchesPerYear(HTML_id){
+    fetch('/matchesPerYear.json').then(res => res.json()).then(data => {
+        const chart = Highcharts.chart(HTML_id, {
+            chart: {
+                type: 'column'
+            },
+            title: {
+                text: 'matchesPerYear'
+            }
+            ,colors:['#b20238']
+            ,
+            xAxis: {
+                categories: Object.keys(data)
+                
+            },
+            yAxis: {
+                title: {
+                    text: 'matches played'
+                }
+            },
+            series: [{
+                name: 'Year',
+                data: Object.values(data)
+            }]
+        });
+    });
+}
+function createChartMatchesWonPerTeam(HTML_id){
     fetch('/matchesWonPerTeam.json').then(res => res.json()).then(data => {
 
         const formater = (data) => {
@@ -112,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
 
-        const chart = Highcharts.chart('container3', {
+        const chart = Highcharts.chart(HTML_id, {
             chart: {
                 type: 'column'
             },
@@ -130,8 +153,4 @@ document.addEventListener('DOMContentLoaded', function () {
             series: formater(data)
         });
     });
-
-
-
-
-});
+}

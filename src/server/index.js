@@ -9,10 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const deliveriesJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, deliveriesJsonPath)));
 const matchesJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, matchesJsonPath)));
 
-let matchesPerYear = ipl.noOfMatchesPerYear(matchesJson);
-let matchesWonPerTeam = ipl.teamWinsPerYear(matchesJson);
-let extraRunPerTeam2016 = ipl.extraRunPerTeam2016(matchesJson, deliveriesJson);
-let economicalBowlers2015 = ipl.economicalBowlers2015(matchesJson, deliveriesJson);
+let matchesPerYear = ipl.getNoOfMatchesPerYear (matchesJson);
+let matchesWonPerTeam = ipl.getTeamWinsPerYear(matchesJson);
+let extraRunPerTeam2016 = ipl.getExtraRunPerTeam2016(matchesJson, deliveriesJson);
+let economicalBowlers2015 = ipl.getEconomicalBowlers2015(matchesJson, deliveriesJson);
 
 function writeToFile(outputFilePath, outputJson) {
     const outputPath = "../public/output";

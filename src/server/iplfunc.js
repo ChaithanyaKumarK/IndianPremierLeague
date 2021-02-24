@@ -3,8 +3,8 @@
 
 //Number of matches played per year for all the years in IPL.
 
-function noOfMatchesPerYear(matchFile) {
-    const result = matchFile.reduce((matches, current) => {
+function getNoOfMatchesPerYear(matchFile) {
+    const noOfMatchesPerYear = matchFile.reduce((matches, current) => {
         if (matches.hasOwnProperty(current.season)) {
             matches[current.season] += 1;
         } else {
@@ -13,16 +13,16 @@ function noOfMatchesPerYear(matchFile) {
         return matches;
     }, {})
 
-    return result;
+    return noOfMatchesPerYear;
 }
 
 
 
 //Number of matches won per team per year in IPL
 
-function teamWinsPerYear(matchFile) {
+function getTeamWinsPerYear(matchFile) {
     // const result = matchesWonPerTeamPerYearCalculator(matchFile);
-    const result = matchFile.reduce((matches, current) => {
+    const teamWinsPerYear = matchFile.reduce((matches, current) => {
         if (matches.hasOwnProperty(current.season)) {
             if (matches[current.season].hasOwnProperty(current.winner)) {
                 matches[current.season][current.winner] += 1;
@@ -35,7 +35,7 @@ function teamWinsPerYear(matchFile) {
         }
         return matches;
     }, {})
-    return result;
+    return teamWinsPerYear;
 
 }
 
@@ -49,10 +49,10 @@ function idsOfYear(matchFile, year) {
     return matchFile.filter(obj => obj.season == year).map(values => values.id);
 }
 
-function extraRunPerTeam2016(matchFile, deliveriesFile) {
+function getExtraRunPerTeam2016(matchFile, deliveriesFile) {
     const ids = idsOfYear(matchFile, 2016);
     const deli2016 = deliveriesFile.filter(each => ids.indexOf(each.match_id) !== -1);
-    const result = deli2016.reduce((deliveries, current) => {
+    const extraRunPerTeam2016 = deli2016.reduce((deliveries, current) => {
         if (deliveries.hasOwnProperty(current.bowling_team)) {
             deliveries[current.bowling_team] += +current.extra_runs;
         } else {
@@ -61,31 +61,31 @@ function extraRunPerTeam2016(matchFile, deliveriesFile) {
         return deliveries;
     }, {})
 
-    return result;
+    return extraRunPerTeam2016;
 }
 
 
 
 ///Top 10 economical bowlers in the year 2015
 
-function top10Map(map) {
-    let topMap = new Map();
+function getTop10Map(map) {
+    let top10Map = new Map();
     let counter = 10;
     for (const [key, value] of Object.entries(map)) {
         counter--;
         if (counter < 0) { break; }
-        topMap[key] = +value.toPrecision(5);
+        top10Map[key] = +value.toPrecision(5);
 
     }
-    return topMap;
+    return top10Map;
 }
 
 function customMapInverse(map) {
-    let newMap = new Map();
+    let inverseMap = new Map();
     for (const [key, value] of Object.entries(map)) {
-        newMap[value] = key;
+        inverseMap[value] = key;
     }
-    return newMap;
+    return inverseMap;
 
 }
 
@@ -93,23 +93,29 @@ function customMapInverse(map) {
 function customSortByValueMap(map) {
     let arr = [];
     let sortedMap = new Map();
+    
+
     for (const [key, value] of Object.entries(map)) {
         arr.push(parseFloat(value));
     }
     arr.sort((a, b) => a - b);
 
     let inverseMap = customMapInverse(map)
-    arr.forEach(value => {
-        sortedMap[inverseMap[value]] = value;
+    arr.forEach(arrValue => {
+        sortedMap[inverseMap[arrValue]] = arrValue;
     })
     return sortedMap;
 }
 
 
-function economicalBowlers2015(matchFile, deliveriesFile) {
-    let ids = idsOfYear(matchFile, 2015);
+function getEconomicalBowlers2015(matchFile, deliveriesFile) {
+    const economy = new Map();
+
+    const ids = idsOfYear(matchFile, 2015);
 
     const deli2015 = deliveriesFile.filter(each => ids.indexOf(each.match_id) !== -1);
+
+    //bowlersEconomy collects the total balls and total runs given
     const bowlersEconomy = deli2015.reduce((deliveries, eachDelivery) => {
         if (deliveries.hasOwnProperty(eachDelivery.bowler)) {
             deliveries[eachDelivery.bowler]['total_balls'] += 1;
@@ -122,26 +128,28 @@ function economicalBowlers2015(matchFile, deliveriesFile) {
         return deliveries
     }, {})
 
-    let economy = new Map();
-
+    
+    
+    //this calculates the economy of each bowler
     for (const [key, value] of Object.entries(bowlersEconomy)) {
 
         economy[key] = (value.total_runs / (value.total_balls / 6));
 
     }
 
-    let sortedMap = customSortByValueMap(economy);
-    let finalResult = top10Map(sortedMap);
+    const sortedMap = customSortByValueMap(economy);
+    
+    const economicalBowlers2015 = getTop10Map(sortedMap);
 
-    return finalResult;
+    return economicalBowlers2015;
 }
 
 
 
 export default {
-    noOfMatchesPerYear,
-    teamWinsPerYear,
-    extraRunPerTeam2016,
-    economicalBowlers2015
+    getNoOfMatchesPerYear,
+    getTeamWinsPerYear,
+    getExtraRunPerTeam2016,
+    getEconomicalBowlers2015
 }
 
