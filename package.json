@@ -6,7 +6,7 @@
   "scripts": {
     "csv-json": "node ./src/convertCsvToJson.js ",
     "start": "node ./src/server/index.js",
-    "test": "node ./src/testdata.js",
+    "test": "node src/server/testiplfucn.js",
     "all": "npm-run-all --serial csv-json start",
     "watch": "nodemon ./src/server/server.js",
     "express": "nodemon ./src/server/app.js",

@@ -206,6 +206,8 @@ function insertIndependentTable(tableData) {
     })
 }
 
+
+//inserting dependent tables
 async function dataFormateAndFillDependentTable() {
     citiesData = await promiseRunQuery('Select * from cities').then(data => data.reduce((objectOfValues, currentValue) => {
         objectOfValues[currentValue.city_name] = currentValue.city_id;
