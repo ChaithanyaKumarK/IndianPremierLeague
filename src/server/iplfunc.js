@@ -1,18 +1,39 @@
 
+import mysql from 'mysql'
+var connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'Chaithanya@123',
+    database: 'IPL_Schema'
+});
 
+connection.connect(function (err) {
+    if (err) {
+        console.error('error connecting');
+        return;
+    }
+    console.log('created connection');
+});
+
+function promiseRunQuery(query) {
+    return new Promise((response, reject) => {
+        connection.query(query, function (error, results, fields) {
+            if (error) reject(error);
+            else {
+                response(results);
+            }
+        });
+    })
+
+}
 
 //Number of matches played per year for all the years in IPL.
 
-function getNoOfMatchesPerYear(matchFile) {
-    const noOfMatchesPerYear = matchFile.reduce((matches, current) => {
-        if (matches.hasOwnProperty(current.season)) {
-            matches[current.season] += 1;
-        } else {
-            matches[current.season] = 1;
-        }
-        return matches;
-    }, {})
-
+async function getNoOfMatchesPerYear() {
+    const noOfMatchesPerYear = await promiseRunQuery('Select count(matches.match_id) as matchCount,seasons.season from matches inner join seasons on matches.season_id=seasons.season_id group by seasons.season ;').then(data => data.reduce((data, eachData) => {
+        data[eachData.season] = eachData.matchCount;
+        return data;
+    }, {}))
     return noOfMatchesPerYear;
 }
 
@@ -20,47 +41,32 @@ function getNoOfMatchesPerYear(matchFile) {
 
 //Number of matches won per team per year in IPL
 
-function getTeamWinsPerYear(matchFile) {
-    // const result = matchesWonPerTeamPerYearCalculator(matchFile);
-    const teamWinsPerYear = matchFile.reduce((matches, current) => {
-        if (matches.hasOwnProperty(current.season)) {
-            if (matches[current.season].hasOwnProperty(current.winner)) {
-                matches[current.season][current.winner] += 1;
-            } else {
-                matches[current.season][current.winner] = 1;
-            }
-        } else {
-            matches[current.season] = {};
-            matches[current.season][current.winner] = 1;
-        }
-        return matches;
-    }, {})
+async function getTeamWinsPerYear() {
+    const teamWinsPerYear = await promiseRunQuery(`Select count(mix.team_name) as noOfWins,mix.team_name as winner,seasons.season from (select * from matches inner join teams on matches.winner_id=teams.team_id)as mix inner join seasons on mix.season_id=seasons.season_id group by seasons.season,mix.team_name ; `)
+        .then(data =>
+            data.reduce((matches, current) => {
+                if (matches.hasOwnProperty(current.season)) {
+                    matches[current.season][current.winner] = current.noOfWins;
+                } else {
+                    matches[current.season] = {};
+                    matches[current.season][current.winner] = current.noOfWins;
+                }
+                return matches;
+            }, {}))
     return teamWinsPerYear;
 
 }
 
 
 
-
-
-
 ///Extra runs conceded per team in the year 2016
-function idsOfYear(matchFile, year) {
-    return matchFile.filter(obj => obj.season == year).map(values => values.id);
-}
 
-function getExtraRunPerTeam2016(matchFile, deliveriesFile) {
-    const ids = idsOfYear(matchFile, 2016);
-    const deli2016 = deliveriesFile.filter(each => ids.indexOf(each.match_id) !== -1);
-    const extraRunPerTeam2016 = deli2016.reduce((deliveries, current) => {
-        if (deliveries.hasOwnProperty(current.bowling_team)) {
-            deliveries[current.bowling_team] += +current.extra_runs;
-        } else {
-            deliveries[current.bowling_team] = +current.extra_runs;
-        }
-        return deliveries;
-    }, {})
-
+async function getExtraRunPerTeam2016() {
+    const extraRunPerTeam2016 = await promiseRunQuery(`SELECT SUM(allData.extra_runs) as extra_runs,teams.team_name FROM (SELECT matches.season_id,deliveries.extra_runs,deliveries.bowling_team_id FROM matches right join deliveries on matches.match_id=deliveries.match_id) AS allData left join teams on teams.team_id=allData.bowling_team_id where allData.season_id=(SELECT season_id from seasons where season=2016) group by teams.team_name ;`).then(data =>
+        data.reduce((data, eachData) => {
+            data[eachData.team_name] = eachData.extra_runs;
+            return data;
+        }, {}));
     return extraRunPerTeam2016;
 }
 
@@ -68,82 +74,15 @@ function getExtraRunPerTeam2016(matchFile, deliveriesFile) {
 
 ///Top 10 economical bowlers in the year 2015
 
-function getTop10Map(map) {
-    let top10Map = new Map();
-    let counter = 10;
-    for (const [key, value] of Object.entries(map)) {
-        counter--;
-        if (counter < 0) { break; }
-        top10Map[key] = +value.toPrecision(5);
+async function getEconomicalBowlers2015() {
+    const bowlersEconomy = await promiseRunQuery('SELECT (SUM(allData.total_runs)/COUNT(players.player_name)) as ball_economy,players.player_name FROM (SELECT deliveries.bowler_id,deliveries.total_runs FROM matches right join deliveries on matches.match_id=deliveries.match_id where season_id=(SELECT season_id FROM seasons where season=2015)) AS allData left join players on players.player_id=allData.bowler_id group by players.player_name order by ball_economy asc limit 10;').then(data =>
+        data.reduce((data, eachData) => {
+            data[eachData.player_name] = eachData.ball_economy;
+            return data;
+        }, {}));
 
-    }
-    return top10Map;
+    return bowlersEconomy;
 }
-
-function customMapInverse(map) {
-    let inverseMap = new Map();
-    for (const [key, value] of Object.entries(map)) {
-        inverseMap[value] = key;
-    }
-    return inverseMap;
-
-}
-
-
-function customSortByValueMap(map) {
-    let arr = [];
-    let sortedMap = new Map();
-    
-
-    for (const [key, value] of Object.entries(map)) {
-        arr.push(parseFloat(value));
-    }
-    arr.sort((a, b) => a - b);
-
-    let inverseMap = customMapInverse(map)
-    arr.forEach(arrValue => {
-        sortedMap[inverseMap[arrValue]] = arrValue;
-    })
-    return sortedMap;
-}
-
-
-function getEconomicalBowlers2015(matchFile, deliveriesFile) {
-    const economy = new Map();
-
-    const ids = idsOfYear(matchFile, 2015);
-
-    const deli2015 = deliveriesFile.filter(each => ids.indexOf(each.match_id) !== -1);
-
-    //bowlersEconomy collects the total balls and total runs given
-    const bowlersEconomy = deli2015.reduce((deliveries, eachDelivery) => {
-        if (deliveries.hasOwnProperty(eachDelivery.bowler)) {
-            deliveries[eachDelivery.bowler]['total_balls'] += 1;
-            deliveries[eachDelivery.bowler]['total_runs'] += +eachDelivery.total_runs;
-        } else {
-            deliveries[eachDelivery.bowler] = {};
-            deliveries[eachDelivery.bowler]['total_balls'] = 1;
-            deliveries[eachDelivery.bowler]['total_runs'] = +eachDelivery.total_runs;
-        }
-        return deliveries
-    }, {})
-
-    
-    
-    //this calculates the economy of each bowler
-    for (const [key, value] of Object.entries(bowlersEconomy)) {
-
-        economy[key] = (value.total_runs / (value.total_balls / 6));
-
-    }
-
-    const sortedMap = customSortByValueMap(economy);
-    
-    const economicalBowlers2015 = getTop10Map(sortedMap);
-
-    return economicalBowlers2015;
-}
-
 
 
 export default {
