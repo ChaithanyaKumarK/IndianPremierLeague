@@ -3,6 +3,13 @@ import mysql from 'mysql'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 
+let citiesData;
+let venuesData;
+let seasonsData;
+let teamsData;
+let playersData;
+let dismissalKindsData;
+let empiresData;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const inputDeliveries = "./data/deliveries.json";
@@ -35,7 +42,7 @@ const queryCreatePlayerTable = 'CREATE TABLE IF NOT EXISTS players(player_id int
 const queryCreateDismissalKindTable = 'CREATE TABLE IF NOT EXISTS dismissalKinds(dismissalKind_id int primary key auto_increment, dismissalKind varchar(255));';
 const queryCreateEmpireTable = 'CREATE TABLE IF NOT EXISTS empires(empire_id int primary key auto_increment, empire_name varchar(255));';
 const queryCreateMatchesTable = `CREATE TABLE IF NOT EXISTS matches (
-    match_id INT PRIMARY KEY AUTO_INCREMENT,
+    match_id INT PRIMARY KEY,
     season_id INT,
     city_id INT,
     match_date DATE,
@@ -120,6 +127,10 @@ const queryCreateDeliveriesTable = `CREATE TABLE IF NOT EXISTS deliveries (
         REFERENCES players (player_id)
 )`;
 
+
+const independentTablesDataFormate = [{ 'venues(venue_name)': [] }, { 'cities(city_name)': [] }, { 'seasons(season)': [] }, { 'teams(team_name)': [] }, { 'players(player_name)': [] }, { 'dismissalKinds(dismissalKind)': [] }, { 'empires(empire_name)': [] }];
+
+
 function createTables() {
     runQuery(queryCreateVenueTable);
     runQuery(queryCreateSeasonTable);
@@ -132,12 +143,6 @@ function createTables() {
     runQuery(queryCreateDeliveriesTable);
 }
 
-
-
-
-
-
-
 async function runQuery(query) {
     connection.query(query, function (error, results, fields) {
         if (error) throw error;
@@ -147,5 +152,230 @@ async function runQuery(query) {
     });
 }
 
+//inserting independent tables
+function getDataForIndependentTables(matches, deliveries) {
+    const dataFromMatches = matches.reduce((data, eachData) => {
+        function compareData(index, data) {
+            if (!index.includes(data)) {
+                index.push(data);
+            }
+        }
+        compareData(data[0]['venues(venue_name)'], eachData.venue);
+        compareData(data[1]['cities(city_name)'], eachData.city);
+        compareData(data[2]['seasons(season)'], +eachData.season);
+        compareData(data[3]['teams(team_name)'], eachData.team1);
+        compareData(data[3]['teams(team_name)'], eachData.team2);
+        compareData(data[4]['players(player_name)'], eachData.player_of_match);
+        compareData(data[6]['empires(empire_name)'], eachData.umpire1);
+        compareData(data[6]['empires(empire_name)'], eachData.umpire2);
+        compareData(data[6]['empires(empire_name)'], eachData.umpire3);
+
+        return data;
+    }
+        , independentTablesDataFormate);
+
+    const allIndependentTableData = deliveries.reduce((data, eachData) => {
+        function compareData(index, data) {
+            if (!index.includes(data)) {
+                index.push(data);
+            }
+        }
+        compareData(data[5]['dismissalKinds(dismissalKind)'], eachData.dismissal_kind);
+        compareData(data[4]['players(player_name)'], eachData.batsman);
+        compareData(data[4]['players(player_name)'], eachData.non_striker);
+        compareData(data[4]['players(player_name)'], eachData.bowler);
+        compareData(data[4]['players(player_name)'], eachData.fielder);
+        return data;
+    }
+        , dataFromMatches);
+
+    return allIndependentTableData;
+}
+
+function insertIndependentTable(tableData) {
+    tableData.forEach(eachValue => {
+        let formattedData = Object.values(eachValue)[0].map(eachValue => [eachValue]);
+        console.log(formattedData);
+
+        connection.query(`INSERT INTO ${Object.keys(eachValue)[0]} VALUES ?`, [formattedData], (error, results, fields) => {
+            if (error) throw error;
+            else {
+                console.log(results);
+            }
+        })
+    })
+}
+
+async function dataFormateAndFillDependentTable() {
+    citiesData = await promiseRunQuery('Select * from cities').then(data => data.reduce((objectOfValues, currentValue) => {
+        objectOfValues[currentValue.city_name] = currentValue.city_id;
+        return objectOfValues;
+    }, {}));
+    venuesData = await promiseRunQuery('Select * from venues').then(data => data.reduce((objectOfValues, currentValue) => {
+        objectOfValues[currentValue.venue_name] = currentValue.venue_id;
+        return objectOfValues;
+    }, {}));
+    seasonsData = await promiseRunQuery('Select * from seasons').then(data => data.reduce((objectOfValues, currentValue) => {
+        objectOfValues[currentValue.season] = currentValue.season_id;
+        return objectOfValues;
+    }, {}));
+    teamsData = await promiseRunQuery('Select * from teams').then(data => data.reduce((objectOfValues, currentValue) => {
+        objectOfValues[currentValue.team_name] = currentValue.team_id;
+        return objectOfValues;
+    }, {}));
+    playersData = await promiseRunQuery('Select * from players').then(data => data.reduce((objectOfValues, currentValue) => {
+        objectOfValues[currentValue.player_name] = currentValue.player_id;
+        return objectOfValues;
+    }, {}));
+
+    dismissalKindsData = await promiseRunQuery('Select * from dismissalKinds').then(data => data.reduce((objectOfValues, currentValue) => {
+        objectOfValues[currentValue.dismissalKind] = currentValue.dismissalKind_id;
+        return objectOfValues;
+    }, {}));
+
+    empiresData = await promiseRunQuery('Select * from empires').then(data => data.reduce((objectOfValues, currentValue) => {
+        objectOfValues[currentValue.empire_name] = currentValue.empire_id;
+        return objectOfValues;
+    }, {}));
+    // await citiesData;/////make it asycronus
+    matchesDataFormatter(matches);
+    deliveriesDataFormatter(deliveries);
+}
+function promiseRunQuery(query) {
+    return new Promise((response, reject) => {
+        connection.query(query, function (error, results, fields) {
+            if (error) reject(error);
+            else {
+                response(results);
+            }
+        });
+    })
+
+}
+function matchesDataFormatter(matches) {
+    const dataFromMatches = matches.reduce((data, eachData) => {
+        let oneRow = Object.keys(eachData).reduce((data, key) => {
+            if (key === "season") {
+                data.push(seasonsData[eachData[key]]);
+            } else if (key === "city") {
+                data.push(citiesData[eachData[key]]);
+            } else if (key === "team1" || key === "team2" || key === "toss_winner" || key === "winner") {
+                data.push(teamsData[eachData[key]]);
+            } else if (key === "player_of_match") {
+                data.push(playersData[eachData[key]]);
+            } else if (key === "venue") {
+                data.push(venuesData[eachData[key]]);
+            } else if (key === "umpire1" || key === "umpire2" || key === "umpire3") {
+                data.push(empiresData[eachData[key]]);
+            } else if (key === "dl_applied" || key === "win_by_runs" || key === "win_by_wickets" || key === "id") {
+                data.push(+ eachData[key]);
+            } else {
+                data.push(eachData[key]);
+            }
+
+            return data;
+        }, []);
+
+        data.push(oneRow);
+
+        return data;
+    }
+        , []);
+    fillMatchesTable(dataFromMatches);
+}
+function deliveriesDataFormatter(deliveries) {
+    const dataFromDeliveries = deliveries.reduce((data, eachData) => {
+        let oneRow = Object.keys(eachData).reduce((data, key) => {
+            if (key === "match_id" || key === "inning" || key === "over" || key === "ball" || key === "is_super_over" || key === "wide_runs" || key === "bye_runs" || key === "legbye_runs" || key === "noball_runs" || key === "penalty_runs" || key === "batsman_runs" || key === "extra_runs" || key === "total_runs") {
+                data.push(+ eachData[key]);
+            } else if (key === "batting_team" || key === "bowling_team") {
+                data.push(teamsData[eachData[key]]);
+            } else if (key === "player_dismissed" || key === "batsman" || key === "non_striker" || key === "bowler" || key === "fielder") {
+                data.push(playersData[eachData[key]]);
+            } else if (key === "dismissal_kind") {
+                data.push(dismissalKindsData[eachData[key]]);
+            } else {
+                data.push(eachData[key]);
+            }
+
+            return data;
+        }, []);
+
+        data.push(oneRow);
+
+        return data;
+    }
+        , []);
+    fillDeliveriesTable(dataFromDeliveries);
+};
+
+function fillDeliveriesTable(data) {
+    const query = `INSERT INTO deliveries(
+        match_id,
+        inning,
+        batting_team_id,
+        bowling_team_id,
+        over,
+        ball,
+        batsman_id,
+        non_striker_id,
+        bowler_id,
+        is_super_over,
+        wide_runs,
+        bye_runs,
+        legbye_runs,
+        noball_runs,
+        penalty_runs,
+        batsman_runs,
+        extra_runs,
+        total_runs,
+        player_dismissed_id,
+        dismissal_kind_id,
+        fielder_id) values ?`;
+    connection.query(query, [data], function (error, results, fields) {
+        if (error) throw error;
+        else {
+            console.log(results);
+        }
+    });
+};
+function fillMatchesTable(data) {
+    const query = `INSERT INTO matches(
+        match_id,
+        season_id,
+        city_id,
+        match_date,
+        team1_id,
+        team2_id,
+        toss_winner_id,
+        toss_decision,
+        result,
+        dl_applied,
+        winner_id,
+        win_by_runs,
+        win_by_wickets,
+        player_of_match_id,
+        venue_id,
+        empire1_id,
+        empire2_id,
+        empire3_id) values ?`;
+    connection.query(query, [data], function (error, results, fields) {
+        if (error) throw error;
+        else {
+            console.log(results);
+        }
+    });
+};
+
+
+
+
+
+
+
+
+
 
 createTables();
+insertIndependentTable(getDataForIndependentTables(matches, deliveries));
+dataFormateAndFillDependentTable();
