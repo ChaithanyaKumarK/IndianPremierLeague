@@ -4,13 +4,12 @@
   "description": ">Stat calculation in Indian Premier League data",
   "main": "index.js",
   "scripts": {
-    "csv-json": "node ./src/convertCsvToJson.js ",
-    "start": "node ./src/server/index.js",
-    "test": "node src/server/testiplfucn.js",
-    "all": "npm-run-all --serial csv-json start",
-    "watch": "nodemon ./src/server/server.js",
-    "express": "nodemon ./src/server/app.js",
-    "dumpdata": "node ./src/writeInDatabase.js"
+    "start": "node ./src/server/app.js",
+    "dumpdata": "node ./src/writeInDatabase.js",
+    "writeFile": "node ./src/server/index.js",
+    "all": "npm-run-all --serial dumpdata writeFile start",
+    "test": "",
+    "watch": "nodemon ./src/server/server.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +30,7 @@
     "sort-map": "^1.0.0"
   },
   "devDependencies": {
+    "dotenv": "^8.2.0",
     "nodemon": "^2.0.7"
   },
   "type": "module"
