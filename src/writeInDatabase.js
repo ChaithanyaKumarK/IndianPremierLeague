@@ -2,6 +2,9 @@ import path from 'path'
 import mysql from 'mysql'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 let citiesData;
 let venuesData;
@@ -19,10 +22,10 @@ let deliveries = JSON.parse(fs.readFileSync(path.join(__dirname, inputDeliveries
 
 
 var connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'Chaithanya@123',
-    database: 'IPL_Schema'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE
 });
 
 connection.connect(function (err) {
@@ -195,12 +198,12 @@ function getDataForIndependentTables(matches, deliveries) {
 function insertIndependentTable(tableData) {
     tableData.forEach(eachValue => {
         let formattedData = Object.values(eachValue)[0].map(eachValue => [eachValue]);
-        console.log(formattedData);
 
         connection.query(`INSERT INTO ${Object.keys(eachValue)[0]} VALUES ?`, [formattedData], (error, results, fields) => {
             if (error) throw error;
             else {
                 console.log(results);
+
             }
         })
     })
@@ -338,6 +341,7 @@ function fillDeliveriesTable(data) {
         if (error) throw error;
         else {
             console.log(results);
+            connection.end();
         }
     });
 };
@@ -368,6 +372,7 @@ function fillMatchesTable(data) {
         }
     });
 };
+
 
 
 
